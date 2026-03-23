@@ -28,16 +28,17 @@ def main() -> None:
     dataset = load_standard_dataset(args.dataset_dir or cfg.data.dataset_dir)
     _, _, test_loader = make_task_loaders(dataset, batch_size=cfg.train.lpr_batch_size)
 
-    kt_model = KnowledgeTracer(num_nodes=max(dataset.concept2id.values()) + 1, hidden_dim=cfg.model.hidden_dim, dropout=cfg.model.dropout)
+    num_nodes = int(dataset.graph.num_nodes)
+    kt_model = KnowledgeTracer(num_nodes=num_nodes, hidden_dim=cfg.model.hidden_dim, dropout=cfg.model.dropout)
     kt_model.load_state_dict(torch.load(args.kt_ckpt, map_location=device))
 
     if cfg.variant.graph_type.lower() == "rgcn":
-        graph_encoder = RGCNEncoder(max(dataset.concept2id.values()) + 1, dataset.graph.num_relations, cfg.model.hidden_dim, cfg.model.num_gnn_layers, cfg.model.dropout)
+        graph_encoder = RGCNEncoder(num_nodes, dataset.graph.num_relations, cfg.model.hidden_dim, cfg.model.num_gnn_layers, cfg.model.dropout)
     else:
-        graph_encoder = TransEEncoder(max(dataset.concept2id.values()) + 1, dataset.graph.num_relations, cfg.model.hidden_dim)
+        graph_encoder = TransEEncoder(num_nodes, dataset.graph.num_relations, cfg.model.hidden_dim)
     preference_encoder = TimeAwarePreferenceEncoder(hidden_dim=cfg.model.hidden_dim, dropout=cfg.model.dropout)
     kb_encoder = KnowledgeBackgroundEncoder(hidden_dim=cfg.model.hidden_dim, mode=cfg.variant.kb_mode, dropout=cfg.model.dropout)
-    policy = PolicyValueNet(hidden_dim=cfg.model.hidden_dim, num_nodes=max(dataset.concept2id.values()) + 1, dropout=cfg.model.dropout)
+    policy = PolicyValueNet(hidden_dim=cfg.model.hidden_dim, num_nodes=num_nodes, dropout=cfg.model.dropout)
     model = LPRModel(graph_encoder, preference_encoder, kb_encoder, policy, hidden_dim=cfg.model.hidden_dim)
     model.load_state_dict(torch.load(args.lpr_ckpt, map_location=device))
 
