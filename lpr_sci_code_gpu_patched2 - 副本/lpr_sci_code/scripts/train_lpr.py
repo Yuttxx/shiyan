@@ -41,14 +41,15 @@ def main() -> None:
     kt_ckpt = args.kt_ckpt or getattr(cfg.output, "kt_ckpt", None) or str(output_dir / "kt_best.pt")
     if not Path(kt_ckpt).exists():
         raise FileNotFoundError(f"KT checkpoint not found: {kt_ckpt}. Please run scripts/train_kt.py first.")
-    kt_model = KnowledgeTracer(num_nodes=max(dataset.concept2id.values()) + 1, hidden_dim=cfg.model.hidden_dim, dropout=cfg.model.dropout)
+    num_nodes = int(dataset.graph.num_nodes)
+    kt_model = KnowledgeTracer(num_nodes=num_nodes, hidden_dim=cfg.model.hidden_dim, dropout=cfg.model.dropout)
     kt_model.load_state_dict(torch.load(kt_ckpt, map_location=device))
     kt_model.to(device).eval()
 
     graph_type = cfg.variant.graph_type
     if graph_type.lower() == "rgcn":
         graph_encoder = RGCNEncoder(
-            num_nodes=max(dataset.concept2id.values()) + 1,
+            num_nodes=num_nodes,
             num_relations=dataset.graph.num_relations,
             hidden_dim=cfg.model.hidden_dim,
             num_layers=cfg.model.num_gnn_layers,
@@ -56,7 +57,7 @@ def main() -> None:
         )
     elif graph_type.lower() == "transe":
         graph_encoder = TransEEncoder(
-            num_nodes=max(dataset.concept2id.values()) + 1,
+            num_nodes=num_nodes,
             num_relations=dataset.graph.num_relations,
             hidden_dim=cfg.model.hidden_dim,
         )
@@ -78,7 +79,7 @@ def main() -> None:
 
     preference_encoder = TimeAwarePreferenceEncoder(hidden_dim=cfg.model.hidden_dim, dropout=cfg.model.dropout)
     kb_encoder = KnowledgeBackgroundEncoder(hidden_dim=cfg.model.hidden_dim, mode=cfg.variant.kb_mode, dropout=cfg.model.dropout)
-    policy = PolicyValueNet(hidden_dim=cfg.model.hidden_dim, num_nodes=max(dataset.concept2id.values()) + 1, dropout=cfg.model.dropout)
+    policy = PolicyValueNet(hidden_dim=cfg.model.hidden_dim, num_nodes=num_nodes, dropout=cfg.model.dropout)
     model = LPRModel(graph_encoder, preference_encoder, kb_encoder, policy, hidden_dim=cfg.model.hidden_dim)
 
     trainer = LPRTrainer(

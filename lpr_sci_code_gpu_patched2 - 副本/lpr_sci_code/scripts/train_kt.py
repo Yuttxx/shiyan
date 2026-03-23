@@ -36,7 +36,7 @@ def main() -> None:
         pin_memory=getattr(cfg.train, "pin_memory", None),
     )
     print(f"[INFO] Training KT on device={device}. cuda_available={torch.cuda.is_available()}")
-    model = KnowledgeTracer(num_nodes=max(dataset.concept2id.values()) + 1, hidden_dim=cfg.model.hidden_dim, dropout=cfg.model.dropout)
+    model = KnowledgeTracer(num_nodes=int(dataset.graph.num_nodes), hidden_dim=cfg.model.hidden_dim, dropout=cfg.model.dropout)
     ckpt_path = str(output_dir / "kt_best.pt")
     report = train_knowledge_tracer(
         model,

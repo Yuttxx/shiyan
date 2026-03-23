@@ -135,7 +135,8 @@ def main() -> None:
 
     from lpr.models import KnowledgeTracer
 
-    kt_model = KnowledgeTracer(num_nodes=max(dataset.concept2id.values()) + 1, hidden_dim=cfg.model.hidden_dim, dropout=cfg.model.dropout)
+    num_nodes = int(dataset.graph.num_nodes)
+    kt_model = KnowledgeTracer(num_nodes=num_nodes, hidden_dim=cfg.model.hidden_dim, dropout=cfg.model.dropout)
     kt_model.load_state_dict(torch.load(args.kt_ckpt, map_location=device))
     kt_model.to(device).eval()
 
@@ -157,7 +158,7 @@ def main() -> None:
         val_ds = GRU4RecDataset(dataset.val_tasks)
         train_loader = DataLoader(train_ds, batch_size=cfg.train.gru4rec_batch_size, shuffle=True, collate_fn=collate_gru4rec)
         val_loader = DataLoader(val_ds, batch_size=cfg.train.gru4rec_batch_size, shuffle=False, collate_fn=collate_gru4rec)
-        model = GRU4RecBaseline(num_nodes=max(dataset.concept2id.values()) + 1, hidden_dim=cfg.model.hidden_dim, dropout=cfg.model.dropout)
+        model = GRU4RecBaseline(num_nodes=num_nodes, hidden_dim=cfg.model.hidden_dim, dropout=cfg.model.dropout)
         ckpt = out_dir / "gru4rec_best.pt"
         report = train_gru4rec(model, train_loader, val_loader, device, epochs=cfg.train.gru4rec_epochs, lr=cfg.train.gru4rec_lr, ckpt_path=str(ckpt))
         model.load_state_dict(torch.load(ckpt, map_location=device))
